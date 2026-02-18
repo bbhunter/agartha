@@ -24,7 +24,7 @@ except:
     print "==== ERROR ====" + "\n\nFailed to load dependencies.\n" +str(sys.exc_info()[1]) +"\n\n==== ERROR ====\n\n"
     sys.exit(1)
 
-VERSION = "3.1007"
+VERSION = "3.1008"
 url_regex = r'(log|sign|time)([-_+%0-9]{0,5})(off|out)|(expire|kill|terminat|delete|remove)'
 ext_regex = r'^\.(gif|jpg|jpeg|png|css|js|ico|svg|eot|woff2|ttf|otf)$'
 
@@ -1309,7 +1309,7 @@ given request then
         self._cbAuthenticationHost.setPreferredSize(Dimension(250, 27))
         self._cbAuthenticationHost.setToolTipText("Target hostnames. If you dont see your target in here, please click 'Reset' button first.")
 
-        self._btnAuthenticationFetchHistory = JButton("Load Requests", actionPerformed=self.historyFetcher)
+        self._btnAuthenticationFetchHistory = JButton("Load", actionPerformed=self.historyFetcher)
         self._btnAuthenticationFetchHistory.setPreferredSize(Dimension(120, 27))
         self._btnAuthenticationFetchHistory.setToolTipText("Load http requests from proxy history.")
 
@@ -2810,7 +2810,10 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
                     # 1 is header
                     _header = self._helpers.analyzeRequest(history).getHeaders()
                     headerRemoves = []
-                    for header in _header:
+                    # Skip the first element (request line) and only process actual headers
+                    for i, header in enumerate(_header):
+                        if i == 0:
+                            continue  # Preserve the request line (e.g., "POST /path HTTP/2")
                         if any(re.findall(r'(cookie|token|auth|content-length)(.*:)', header, re.IGNORECASE)):
                             headerRemoves.append(header)
                     for header in headerRemoves:
