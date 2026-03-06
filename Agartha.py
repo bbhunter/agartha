@@ -24,7 +24,7 @@ except:
     print "==== ERROR ====" + "\n\nFailed to load dependencies.\n" +str(sys.exc_info()[1]) +"\n\n==== ERROR ====\n\n"
     sys.exit(1)
 
-VERSION = "3.1008"
+VERSION = "3.1010"
 url_regex = r'(log|sign|time)([-_+%0-9]{0,5})(off|out)|(expire|kill|terminat|delete|remove)'
 ext_regex = r'^\.(gif|jpg|jpeg|png|css|js|ico|svg|eot|woff2|ttf|otf)$'
 
@@ -2613,7 +2613,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
 
         self._tbBambdasScopeURLs = JTextPane()
         self._tbBambdasScopeURLs.setToolTipText("Define test scope: one URL per line. Leave blank to include everything, and * acts like a regex wildcard.")
-        self._txBambdasScopeURLs = "Please provide all URLs in the testing scope. * works like a placeholder for anything. Examples:\n\t- /\n\t+ The root path includes everything\n\t- /TargetPath\n\t+ It includes only the exact path you provide:\n\t\t+ /TargetPath?id=1\n\t- /TargetPath/*\n\t+ It includes all paths starting with the one you provide:\n\t\t+ /TargetPath/a/b/c/?id=1*\n\t- /TargetPath/\n\t+ It includes only the specific target directory:\n\t\t+ /TargetPath/?id=1*\n\t# Lines begin with # are treated as comments."
+        self._txBambdasScopeURLs = "URLs in testing scope. Wildcard * matches any characters. Examples:\n        > /\n                Include all paths\n        > /api/users\n                Include exact match only\n                + /api/users\n                - /api/users/, /api/users/profile\n        > /api/users*\n                Include everything beneath\n                + /api/users/profile, /api/users/anything/more/path\n        # Use hash for comments"
         placeholderText1 = self._txBambdasScopeURLs
         self._tbBambdasScopeURLs.setText(placeholderText1)
         self._tbBambdasScopeURLs.setForeground(Color.GRAY)
@@ -2625,7 +2625,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
 
         self._tbBambdasScopeDoneURLs = JTextPane()
         self._tbBambdasScopeDoneURLs.setToolTipText("Mark already-tested endpoints: one URL per line. Leave blank if none, and * acts like a regex wildcard.")
-        self._txBambdasScopeDoneURLs = "Please provide URLs already tested. * works like a placeholder for anything. Examples:\n\t- /admin/*/users/*/class\n\t+ Asterisk stands for anything (ID, UUID, etc):\n\t\t+ /admin/12345/users/67890/class?view=page\n\t- /admin/*/users/*/class*\n\t+ Asterisk stands for anything (ID, UUID, or to match everything after the path):\n\t\t+ /admin/12345/users/67890/class/cat/view/?page=home*\n\t# The same comment rule also applies here."
+        self._txBambdasScopeDoneURLs = "Already tested URLs. Wildcard * matches any characters. Examples:\n        > /api/*/users/*/profile\n                Asterisk matches any segment (IDs, paths, strings)\n                + /api/v1/users/dashboard/1337/profile\n                - /api/v1/users/dashboard/profile/settings\n        > /api/*/users/*/profile*\n                Trailing * includes remaining paths\n                + /api/v1/users/portal/1/profile/settings\n        # Use hash for comments"
         placeholderText2 = self._txBambdasScopeDoneURLs
         self._tbBambdasScopeDoneURLs.setText(placeholderText2)
         self._tbBambdasScopeDoneURLs.setForeground(Color.GRAY)
@@ -2637,7 +2637,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
 
         self._tbBambdasBlackListedURLs = JTextPane()
         self._tbBambdasBlackListedURLs.setToolTipText("Hide from the history: one URL per line. Leave blank to exclude nothing. Adding '/' will hide everything unless a criteria matches, and * acts like a regex wildcard.")
-        self._txBambdasBlackListedURLs = "Please provide the URLs to be blacklisted, to hide from the HTTP call history. * works like a placeholder for anything. Examples:\n\t-/health-check/\n\t+ Excludes specifically this path:\n\t\t+ /health-check/?Level=Info\n\t-/health-check*\n\t+ Excludes specifically this path, and rest:\n\t\t+ /health-check/monitor/log/?Level=Info*\n\t# The same comment rule also applies here."
+        self._txBambdasBlackListedURLs = "URLs to hide from HTTP history. Wildcard * matches any characters. Examples:\n        > /metrics/\n                Exact path match\n                + /metrics/\n                - /metrics, /metrics/health\n        > /metrics/*\n                Path and all continuations\n                + /metrics/, /metrics/health\n                - /metrics\n        > /\n                Adding / will hide everything unless other criteria match"
         placeholderText3 = self._txBambdasBlackListedURLs
         self._tbBambdasBlackListedURLs.setText(placeholderText3)
         self._tbBambdasBlackListedURLs.setForeground(Color.GRAY)
@@ -2792,12 +2792,14 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
                     _url = _url.replace(":80/", "/")
 
                 _ext = os.path.splitext(urlparse.urlparse(_url).path)[1]
-                if any(_url in sublist for sublist in self.authenticationMatrix) or not _url or any(re.findall(url_regex, _url, re.IGNORECASE)) or any(re.findall(ext_regex, _ext, re.IGNORECASE)):
+                # if any(_url in sublist for sublist in self.authenticationMatrix) or not _url or any(re.findall(url_regex, _url, re.IGNORECASE)) or any(re.findall(ext_regex, _ext, re.IGNORECASE)):
+                if any(_url in sublist for sublist in self.authenticationMatrix) or not _url or any(re.findall(ext_regex, _ext, re.IGNORECASE)):
                     continue
 
                 if self._cbAuthenticationEnableFilter.isSelected() and self.txAuthenticationEnableKeyWordURL.getText().strip():
                     keywords = [kw.strip() for kw in self.txAuthenticationEnableKeyWordURL.getText().split(',')]
-                    if not any(keyword in _url for keyword in keywords):
+                    url_without_domain = '/' + _url.split('/', 3)[3] if len(_url.split('/', 3)) > 3 else _url
+                    if not any(keyword in url_without_domain for keyword in keywords):
                         continue
 
                 should_process = True
@@ -2846,7 +2848,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         if ignoredURLs > 0:
             ignoredURLsTxt = str(ignoredURLs) + " similar URLs were ignored."
 
-        self._lblAuthenticationNotification.text = "'" + str(self._cbAuthenticationHost.getSelectedItem()) + "' and '" + str(len(self.authenticationMatrix)) + "' requests loaded (session identifiers removed and URLs with actions like delete, remove, kill, terminate, log-out skipped)." + ignoredURLsTxt + " Load more or click 'RUN' to proceed."
+        self._lblAuthenticationNotification.text = "'" + str(self._cbAuthenticationHost.getSelectedItem()) + "' and '" + str(len(self.authenticationMatrix)) + "' requests loaded." + ignoredURLsTxt + " Load more or click 'RUN' to proceed."
 
         self._cbAuthenticationHost.removeItemAt(self._cbAuthenticationHost.getSelectedIndex())
         self.tabAuthenticationJlist.setSelectedIndex(0)
