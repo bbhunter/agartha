@@ -2380,7 +2380,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         self._cbBambdasforWhat.setEnabled(False)
         
         self._lblBambdasScope = JLabel("Processing Scope")
-        self._cbBambdasScope = JComboBox(('All Endpoints', 'Process In-Scope Domains Only, and Hide Others', 'Process In-Scope Domains, but Show Others as Well'))
+        self._cbBambdasScope = JComboBox(('All Endpoints', 'Process In-Scope Domains Only and Hide the Rest', 'Process In-Scope Domains and Show Others as Well'))
         self._lblBambdasScope.setToolTipText("Choose whether to show only items within the current project scope, hide or all items.")
         self._cbBambdasScope.setToolTipText("Toggle to show only in-scope items, hide unprocessed hosts or everything.")
         
