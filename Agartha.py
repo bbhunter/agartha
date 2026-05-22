@@ -24,7 +24,7 @@ except:
     print "==== ERROR ====" + "\n\nFailed to load dependencies.\n" +str(sys.exc_info()[1]) +"\n\n==== ERROR ====\n\n"
     sys.exit(1)
 
-VERSION = "3.1010"
+VERSION = "3.1020"
 url_regex = r'(log|sign|time)([-_+%0-9]{0,5})(off|out)|(expire|kill|terminat|delete|remove)'
 ext_regex = r'^\.(gif|jpg|jpeg|png|css|js|ico|svg|eot|woff2|ttf|otf)$'
 
@@ -114,7 +114,7 @@ class BurpExtender(IBurpExtender, ITab, IMessageEditorController, IContextMenuFa
         self._tbAuthHeader.setEnabled(True)
         self._tbAuthURL.setEnabled(True)
         self.progressBar.setValue(1000000)
-        self._lblAuthNotification.text = "Blue, Green, Purple and Beige colors are representation of users. Yellow, Orange and Red cell colors show warning levels."        
+        self._lblAuthNotification.text = "Blue, Green, Purple and Beige colors are representation of users. Blank is the default color, while yellow, orange, and red cells indicate warning levels if an access violation occurs."
         return
     
     def headerAdjustment(self, _header, _url, userID):
@@ -1197,7 +1197,7 @@ given request then
         self._btnAuthRun.setToolTipText("Generate user access table!")
         self._btnSiteMapGeneratorRun = JButton("Spider", actionPerformed=self.siteMapGeneratorFunc)
         self._btnSiteMapGeneratorRun.setPreferredSize(Dimension(90, 27))
-        self._btnSiteMapGeneratorRun.setToolTipText("It crawls all the links the user can visit and populate URL list automatically.")
+        self._btnSiteMapGeneratorRun.setToolTipText("Crawl all the links the user can visit and populate URL list automatically.")
         self._btnAuthReset = JButton("Reset", actionPerformed=self.tableMatrixReset)
         self._btnAuthReset.setPreferredSize(Dimension(90, 27))
         self._btnAuthReset.setToolTipText("Clear all.")
@@ -1716,7 +1716,7 @@ given request then
         # Filter out scope lines that have already been tested
         urls_lines = self._tbBambdasScopeURLs.getText().split("\n")
         done_urls_lines = set(self._tbBambdasScopeDoneURLs.getText().split("\n"))
-        new_urls_lines = [line if line.startswith("#") or re.sub(r"\{[^}]+\}|\*", ".*", line) not in {re.sub(r"\{[^}]+\}|\*", ".*", l) for l in done_urls_lines} else "" for line in urls_lines]
+        new_urls_lines = [line if line.startswith("#") or re.sub(r"\{[^}]+\}|\*", ".*", line) not in {re.sub(r"\{[^}]+\}|\*", ".*", l) for l in done_urls_lines if l.strip() and not l.strip().startswith("#")} else "" for line in urls_lines]
         self._tbBambdasScopeURLs.setText("\n".join(new_urls_lines))
         # Filter out scope lines that have already been tested
 
@@ -1788,7 +1788,7 @@ given request then
         bambdas += "if (!requestResponse.time().isAfter(ZonedDateTime.now().minusDays(" + self._cbBambdasDisplayDays.getSelectedItem().split()[0] + ")))\n"
         bambdas += "    return false;\n\n"
 
-        if self._cbBambdasScope.isSelected():
+        if self._cbBambdasScope.getSelectedIndex() == 1:
             bambdas += "// Display only items that are in scope and have a response.\n"
             bambdas += "if (!requestResponse.hasResponse() || !requestResponse.request().isInScope())\n"
         else:
@@ -2151,6 +2151,8 @@ String responseHeader = isDownloadHeaderPresent ? headersString.toString() : "";
         if (Pattern.compile(targetPath, Pattern.CASE_INSENSITIVE).matcher(path).find() && targetPath != null && !targetPath.trim().isEmpty()"""     
         if self._cbBambdasColorScope.getSelectedIndex() == 0:
             bambdas += " && (requestResponse.annotations().highlightColor() == HighlightColor.NONE)"
+        if self._cbBambdasScope.getSelectedIndex() == 2:
+            bambdas += " && (requestResponse.request().isInScope())"
         bambdas += "){\n"
         bambdas += "\t\t\trequestResponse.annotations().setHighlightColor(HighlightColor."+ self._cbBambdasColorScope.getSelectedItem() + ");\n\t\t\tmatchedScope = true;\n\t\t\tbreak;\n\t\t\t}\n"
 
@@ -2160,6 +2162,8 @@ String responseHeader = isDownloadHeaderPresent ? headersString.toString() : "";
         if (Pattern.compile(targetPath, Pattern.CASE_INSENSITIVE).matcher(path).find() && targetPath != null && !targetPath.trim().isEmpty()"""
         if self._cbBambdasColorScopeSecondary.getSelectedIndex() == 0:
             bambdas += " && (requestResponse.annotations().highlightColor() == HighlightColor.NONE)"
+        if self._cbBambdasScope.getSelectedIndex() == 2:
+            bambdas += " && (requestResponse.request().isInScope())"
         bambdas += "){\n"
         bambdas += "\t\t\trequestResponse.annotations().setHighlightColor(HighlightColor."+ self._cbBambdasColorScopeSecondary.getSelectedItem() + ");\n\t\t\tmatchedDone = true;\n\t\t\tbreak;\n\t\t}\n}\n// End processing window"
 
@@ -2303,7 +2307,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         self._tbBambdasScopeDoneURLs.setForeground(Color.GRAY)
         self._tbBambdasBlackListedURLs.setForeground(Color.GRAY)
         self.updateBambdasScriptText("/* Bambdas Script will be in here automatically */")
-        self._cbBambdasScope.setSelected(False)
+        self._cbBambdasScope.setSelectedIndex(0)
         self._cbBambdasExtIgnore.setSelected(True)
         self._cbBambdasDisplayDays.setEnabled(True)
         self._cbBambdasProcessDays.setEnabled(True)
@@ -2375,10 +2379,10 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         self._cbBambdasforWhat = JComboBox(('View filter - HTTP history', 'Capture Filter'))
         self._cbBambdasforWhat.setEnabled(False)
         
-        self._lblBambdasScope = JLabel("Only process in-scope items")
-        self._cbBambdasScope = JCheckBox('', False)
-        self._lblBambdasScope.setToolTipText("Choose whether to show only items within the current project scope or all items.")
-        self._cbBambdasScope.setToolTipText("Toggle to show only in-scope items or everything.")
+        self._lblBambdasScope = JLabel("Processing Scope")
+        self._cbBambdasScope = JComboBox(('All Endpoints', 'Process In-Scope Domains Only, and Hide Others', 'Process In-Scope Domains, but Show Others as Well'))
+        self._lblBambdasScope.setToolTipText("Choose whether to show only items within the current project scope, hide or all items.")
+        self._cbBambdasScope.setToolTipText("Toggle to show only in-scope items, hide unprocessed hosts or everything.")
         
         self._txtBambdasSearchHTMLCommnets = JTextField("The search will occur between the '<!--' and '-->' tags.", 100)
         self._txtBambdasSearchHTMLCommnets.setEnabled(False)
@@ -2712,15 +2716,26 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         t = Thread(target=self.historyFetchHostnameThread)
         t.start()
         return
+    # def historyFetchHostnameThread(self):
+    #     self._cbAuthenticationHost.removeAllItems()
+    #     _hostnames = []
+    #     histories = self._callbacks.getProxyHistory()
+    #     for history in histories:
+    #         _hostname = str(self._helpers.analyzeRequest(history).getUrl().getHost())
+    #         if _hostname not in _hostnames:
+    #             _hostnames.append(_hostname)
+    #             self._cbAuthenticationHost.addItem(_hostname)
+    #     return
     def historyFetchHostnameThread(self):
         self._cbAuthenticationHost.removeAllItems()
-        _hostnames = []
+        _hostname_counts = {}
         histories = self._callbacks.getProxyHistory()
         for history in histories:
             _hostname = str(self._helpers.analyzeRequest(history).getUrl().getHost())
-            if _hostname not in _hostnames:
-                _hostnames.append(_hostname)
-                self._cbAuthenticationHost.addItem(_hostname)
+            _hostname_counts[_hostname] = _hostname_counts.get(_hostname, 0) + 1
+        # Sort by count descending
+        for _hostname, _count in sorted(_hostname_counts.items(), key=lambda x: x[1], reverse=True):
+            self._cbAuthenticationHost.addItem(_hostname)
         return
 
     def historyFetcher(self, ev=None):
@@ -2928,9 +2943,9 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
             
             if _status == '200':
                 # the response code is http 200
-                if ( "<body>the requested url was rejected.</body>" in _msgBody.lower() or ("sorry, something went wrong" in _msgBody.lower() and "an unexpected error has occurred" in _msgBody.lower())):
+                if ( "the requested url was rejected" in _msgBody.lower() or ("sorry, something went wrong" in _msgBody.lower() and "an unexpected error has occurred" in _msgBody.lower())):
                     # check the response if it is rejected
-                    _status = _status + "-"
+                    _status = _status + "(Denied)"
                 else:
                     # check if the default request also returns the same response
                     header = list(_header)
@@ -2944,11 +2959,12 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
                     if status == '200':
                         _msgBody = self._helpers.bytesToString(_response.getResponse()[self._helpers.analyzeResponse(self._helpers.bytesToString(_response.getResponse())).getBodyOffset():])
                         msgBody = self._helpers.bytesToString(response.getResponse()[self._helpers.analyzeResponse(self._helpers.bytesToString(response.getResponse())).getBodyOffset():])
-                        if msgBody == _msgBody:
-                            _status = _status + "-"
+                        if msgBody == _msgBody and _msgBody:
+                            _status = _status + "(Filtered)"
 
             if not _msgBody:
                 _status = _status + "(EmptyBody)"
+                self._http200withNoResponse = True
             
             if not self.tableMatrixAuthentication_DM.getValueAt(_row, _column):
                 self.tableMatrixAuthentication_DM.setValueAt(_status, _row, _column)
@@ -3319,6 +3335,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         return urls
 
     def authenticationMatrixThread(self, _matrixList):
+        self._http200withNoResponse = False
         self._requestViewerAuthentication.setMessage("", False)
         self._responseViewerAuthentication.setMessage("", False)
         self._btnAuthenticationFetchHistory.setEnabled(False)
@@ -3834,17 +3851,19 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
                                     _cellHint.append("Target URL is '" + url + "'")
                 # column19
 
-
                 self._httpReqResAuthentication.append(_reqRes)
                 self._httpReqResAuthenticationTipMessage.append(_cellHint)
 
+            self.currentText = "The table has been populated. Blank is default color, which indicates no issue has been found."
+            if self._http200withNoResponse:
+                self.currentText = self.currentText + "However, some HTTP responses returned status 200 with empty bodies, which requires further investigation."
+            else:
+                self.currentText = self.currentText + "Http response codes are shown below, you can click any of them for more details."
 
-            self.currentText = "The table has been populated. Blank is default color, which indicates no issue has been found. Http response codes are shown below, you can click any of them for more details."
             if self.errorNumbers != 0:
                 successRate = 100 - 100 * float(self.errorNumbers) / float(self.cellNumbers)
                 if successRate > 69:
-                    self.currentText = "Successful connection rate is " + str(int(successRate)) + "%"
-                    self.currentText = self.currentText + ". The table has been populated. Blank is default color, which indicates no issue has been found. Http response codes are shown below, you can click any of them for more details."
+                    self.currentText = "Successful connection rate is " + str(int(successRate)) + "%. " + self.currentText
                 else:
                     self.currentText = "Successful connection rate is very low, please check your network connection!"
             
@@ -4163,6 +4182,424 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         t.start()
         return
 
+    def normalizeUrl(self, link, baseUrl):
+        """
+        Normalize and resolve a URL against a base URL.
+        Handles relative paths, fragments, encodings, and edge cases.
+        Returns normalized absolute URL or empty string if invalid.
+        """
+        if not link or not link.strip():
+            return ""
+        
+        link = link.strip()
+        
+        # Decode HTML entities first (e.g., &#x2F; -> /, &#x2E; -> .)
+        try:
+            import HTMLParser
+            html_parser = HTMLParser.HTMLParser()
+            link = html_parser.unescape(link)
+        except:
+            # Python 3 compatibility
+            try:
+                import html
+                link = html.unescape(link)
+            except:
+                pass
+        
+        # Skip very short strings that are likely variable names
+        if len(link) < 4 and not link.startswith('/'):
+            return ""
+        
+        # Filter out JavaScript expressions (but allow query strings)
+        # These characters always indicate JS code, not URLs
+        always_invalid = ['(', ')', '{', '}', '[', ']', '|', ' ']
+        if any(char in link for char in always_invalid):
+            return ""
+        
+        # These characters are only valid in query strings (after ?)
+        query_only_chars = ['=', '&', '+']
+        if any(char in link for char in query_only_chars):
+            # Must have a ? before these characters to be valid
+            if '?' not in link:
+                return ""
+            # Check that these chars appear only after the ?
+            path_part = link.split('?')[0]
+            if any(char in path_part for char in query_only_chars):
+                return ""
+        
+        # Decode URL-encoded characters in the beginning (e.g., %3a -> :)
+        try:
+            if '%' in link[:15]:
+                decoded = urllib.unquote(link)
+                # Only use decoded if it looks valid
+                if decoded and not any(c in decoded for c in ['<', '>', '"', "'"]):
+                    link = decoded
+        except:
+            pass
+        
+        # Skip invalid/dangerous patterns
+        invalid_patterns = ['"', '%22', '%3c', '%3e', '<', '>', 'javascript:', 'data:', 'mailto:', 'tel:', 'vbscript:', 'file:']
+        if any(p in link.lower() for p in invalid_patterns):
+            return ""
+        
+        # Skip if contains 'script' as tag (but allow /scripts/ path)
+        if re.search(r'<\s*script', link, re.IGNORECASE):
+            return ""
+        
+        # Remove fragment identifier for crawling purposes (we crawl the base page)
+        if '#' in link:
+            link = link.split('#')[0]
+            if not link:
+                # Link was only a fragment, use current page path
+                return urlparse.urlparse(baseUrl).scheme + "://" + urlparse.urlparse(baseUrl).netloc + urlparse.urlparse(baseUrl).path
+        
+        # Handle protocol-relative URLs (//example.com/path)
+        if link.startswith('//'):
+            link = urlparse.urlparse(baseUrl).scheme + ':' + link
+        
+        # Handle absolute URLs
+        if link.startswith('http://') or link.startswith('https://'):
+            # URL already has scheme, just normalize it
+            parsed = urlparse.urlparse(link)
+            # Normalize path (resolve any ../ or ./)
+            normalized_path = posixpath.normpath(parsed.path) if parsed.path else '/'
+            if parsed.path.endswith('/') and not normalized_path.endswith('/'):
+                normalized_path += '/'
+            return parsed.scheme + "://" + parsed.netloc + normalized_path + ('?' + parsed.query if parsed.query else '')
+        
+        # Handle root-relative URLs (/path/to/resource)
+        if link.startswith('/'):
+            return urlparse.urlparse(baseUrl).scheme + "://" + urlparse.urlparse(baseUrl).netloc + link
+        
+        # Handle relative paths with ../ or ./
+        if link.startswith('..') or link.startswith('./'):
+            basePath = urlparse.urlparse(baseUrl).path
+            # If base path doesn't end with /, get directory
+            if not basePath.endswith('/'):
+                basePath = basePath.rsplit('/', 1)[0] + '/'
+            
+            # Preserve trailing slash
+            trailingSlash = '/' if link.endswith('/') else ''
+            
+            # Combine and normalize
+            combined = posixpath.normpath(basePath + link)
+            return urlparse.urlparse(baseUrl).scheme + "://" + urlparse.urlparse(baseUrl).netloc + combined + trailingSlash
+        
+        # Handle current directory relative (./file or just filename)
+        if link.startswith('.'):
+            link = link[2:] if link.startswith('./') else link[1:]
+        
+        # Handle plain relative URLs (path/to/resource)
+        if link and not link.startswith('http'):
+            return urlparse.urljoin(baseUrl, link)
+        
+        return ""
+
+    def isValidLinkForCrawl(self, link, targetHostname, existingUrls):
+        """
+        Check if a link is valid for crawling.
+        Returns True if the link should be added to the crawl queue.
+        """
+        if not link or link in existingUrls:
+            return False
+        
+        parsed = urlparse.urlparse(link)
+        
+        # Must have valid scheme
+        if parsed.scheme not in ['http', 'https']:
+            return False
+        
+        # Must match target hostname
+        if parsed.hostname != targetHostname:
+            return False
+        
+        # Check for dangerous patterns in path
+        if "/." in link and "/.." not in link:
+            return False
+        
+        # Check against session terminators and dangerous paths
+        if any(re.findall(url_regex, link, re.IGNORECASE)):
+            return False
+        
+        # Check file extension
+        ext = os.path.splitext(parsed.path)[1]
+        if ext and any(re.findall(ext_regex, ext, re.IGNORECASE)):
+            return False
+        
+        return True
+
+    def extractLinksFromHtml(self, content, baseUrl):
+        """
+        Extract links from HTML content including various tag attributes.
+        """
+        links = set()
+        
+        # More robust patterns that handle href anywhere in the tag
+        href_patterns = [
+            r'<a\s+[^>]*?href\s*=\s*[\'"]([^\'"]+)[\'"]',
+            r'<a\s+href\s*=\s*[\'"]([^\'"]+)[\'"]',  # Direct href after tag
+            r'<link\s+[^>]*?href\s*=\s*[\'"]([^\'"]+)[\'"]',
+            r'<area\s+[^>]*?href\s*=\s*[\'"]([^\'"]+)[\'"]',
+            r'href\s*=\s*[\'"]([^\'">]+)[\'"]',  # Catch any href attribute
+        ]
+        
+        # src attributes (script, img, iframe, embed, source, video, audio)
+        src_patterns = [
+            r'<(?:script|iframe|embed|source|video|audio)\s+[^>]*?src\s*=\s*[\'"]([^\'"]+)[\'"]',
+        ]
+        
+        # Form actions
+        action_patterns = [
+            r'<form\s+[^>]*?action\s*=\s*[\'"]([^\'"]+)[\'"]',
+        ]
+        
+        # Data attributes that commonly contain URLs
+        data_patterns = [
+            r'data-(?:url|href|src|link|ajax|load|target)\s*=\s*[\'"]([^\'"]+)[\'"]',
+        ]
+        
+        # Meta refresh and og/twitter tags
+        meta_patterns = [
+            r'<meta\s+[^>]*?content\s*=\s*[\'"][^"\']*?url\s*=\s*([^\'";\s]+)',
+            r'<meta\s+[^>]*?(?:property|name)\s*=\s*[\'"](?:og:|twitter:)[^\'"]*[\'"][^>]*?content\s*=\s*[\'"]([^\'"]+)[\'"]',
+        ]
+        
+        # SVG xlink:href
+        svg_patterns = [
+            r'xlink:href\s*=\s*[\'"]([^\'"]+)[\'"]',
+        ]
+        
+        # Base tag (to update base URL)
+        base_match = re.search(r'<base\s+[^>]*?href\s*=\s*[\'"]([^\'"]+)[\'"]', content, re.IGNORECASE)
+        if base_match:
+            baseUrl = self.normalizeUrl(base_match.group(1), baseUrl) or baseUrl
+        
+        all_patterns = href_patterns + src_patterns + action_patterns + data_patterns + meta_patterns + svg_patterns
+        
+        for pattern in all_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                normalized = self.normalizeUrl(match, baseUrl)
+                if normalized:
+                    links.add(normalized)
+        
+        # Handle unquoted attributes (less common but exists)
+        unquoted_patterns = [
+            r'href\s*=\s*([^\s\'"<>]+)',
+            r'src\s*=\s*([^\s\'"<>]+)',
+            r'action\s*=\s*([^\s\'"<>]+)',
+        ]
+        for pattern in unquoted_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                # Additional validation for unquoted attributes
+                if match and not match.startswith('{') and not match.startswith('$'):
+                    # Must contain alphanumeric or / or . to be a valid URL
+                    if re.search(r'[a-zA-Z0-9/.]', match):
+                        normalized = self.normalizeUrl(match.rstrip('>'), baseUrl)
+                        if normalized:
+                            links.add(normalized)
+        
+        return links
+
+    def extractLinksFromJavaScript(self, content, baseUrl):
+        """
+        Extract URLs from JavaScript code including string literals,
+        template literals, and common API patterns.
+        """
+        links = set()
+        
+        # Absolute URLs in strings (single, double, backtick quotes)
+        url_in_string = [
+            r'[\'"`](https?://[^\'"` \t\n\r<>]+)[\'"`]',
+        ]
+        
+        # Relative paths in strings (commonly API endpoints)
+        relative_patterns = [
+            r'[\'"`](/(?:api|v\d|rest|graphql|ajax|ws|services?|endpoints?|data|json|xml)[^\'"` \t\n\r<>]*)[\'"`]',
+            r'[\'"`](/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)+\.(?:php|asp|aspx|jsp|json|xml|html|htm))[\'"`]',
+            r'[\'"`](/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/?)[\'"`]',
+            # Current directory files (no leading slash) like 'file.php' or 'file.php?param=value'
+            r'[\'"`]([a-zA-Z0-9_-]+\.(?:php|asp|aspx|jsp|html|htm)(?:\?[^\'"` \t\n\r<>]*)?)[\'"`]',
+        ]
+        
+        # fetch/axios/ajax calls
+        ajax_patterns = [
+            r'(?:fetch|axios\.(?:get|post|put|delete|patch)|ajax|\$\.(?:get|post|ajax))\s*\(\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'\.(?:get|post|put|delete|patch|request)\s*\(\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'url\s*[:=]\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'endpoint\s*[:=]\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'href\s*[:=]\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'path\s*[:=]\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'api\s*[:=]\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+        ]
+        
+        # Form action and navigation patterns (e.g., document.form.action='file.php')
+        form_patterns = [
+            r'\.action\s*=\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'\.src\s*=\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'open\s*\(\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+        ]
+        
+        # Router/navigation patterns (React Router, Vue Router, Angular)
+        router_patterns = [
+            r'(?:to|path|redirect|navigate|push|replace)\s*[:=]\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'(?:Link|NavLink|router-link)\s+[^>]*?to\s*=\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+        ]
+        
+        # Template literals with simple expressions
+        template_patterns = [
+            r'`([^`]*\$\{[^}]+\}[^`]*)`',  # Template literals - extract whole string
+        ]
+        
+        # Window.location assignments
+        location_patterns = [
+            r'(?:window\.)?location(?:\.href)?\s*=\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+            r'location\.(?:assign|replace)\s*\(\s*[\'"`]([^\'"` \t\n\r]+)[\'"`]',
+        ]
+        
+        # Extract from various patterns
+        for pattern in url_in_string + relative_patterns + ajax_patterns + form_patterns + router_patterns + location_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                normalized = self.normalizeUrl(match, baseUrl)
+                if normalized:
+                    links.add(normalized)
+        
+        # Handle template literals - try to extract static parts
+        for pattern in template_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                # Remove ${...} expressions and try to get static URL parts
+                static_part = re.sub(r'\$\{[^}]+\}', '', match)
+                if static_part.strip() and ('/' in static_part or 'http' in static_part):
+                    # Try to identify if it's a URL base
+                    if static_part.startswith('/') or static_part.startswith('http'):
+                        normalized = self.normalizeUrl(static_part.split('?')[0], baseUrl)
+                        if normalized:
+                            links.add(normalized)
+        
+        return links
+
+    def extractLinksFromJson(self, content, baseUrl):
+        """
+        Extract URLs from JSON content.
+        """
+        links = set()
+        
+        # Try to parse as JSON first
+        try:
+            def extract_from_json_obj(obj):
+                if isinstance(obj, dict):
+                    for key, value in obj.items():
+                        if isinstance(value, (str, unicode)):
+                            # Check if value looks like a URL
+                            if value.startswith('http://') or value.startswith('https://') or value.startswith('/'):
+                                normalized = self.normalizeUrl(value, baseUrl)
+                                if normalized:
+                                    links.add(normalized)
+                        elif isinstance(value, (dict, list)):
+                            extract_from_json_obj(value)
+                elif isinstance(obj, list):
+                    for item in obj:
+                        extract_from_json_obj(item)
+            
+            # Try to parse entire content as JSON
+            json_data = json.loads(content)
+            extract_from_json_obj(json_data)
+        except:
+            pass
+        
+        # Also use regex patterns for JSON-like structures even if not valid JSON
+        json_url_patterns = [
+            r'"(?:url|href|link|path|endpoint|uri|src|redirect|location|next|callback)"\s*:\s*"([^"]+)"',
+            r"'(?:url|href|link|path|endpoint|uri|src|redirect|location|next|callback)'\s*:\s*'([^']+)'",
+            r'"(https?://[^"]+)"',
+            r'"(/[^"]+\.(?:php|asp|aspx|jsp|json|xml|html|htm|js|css))"',
+            r'"(/api[^"]*)"',
+            r'"(/v\d[^"]*)"',
+        ]
+        
+        for pattern in json_url_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                normalized = self.normalizeUrl(match, baseUrl)
+                if normalized:
+                    links.add(normalized)
+        
+        return links
+
+    def extractLinksFromComments(self, content, baseUrl):
+        """
+        Extract URLs from HTML/JS comments.
+        """
+        links = set()
+        
+        # HTML comments
+        html_comments = re.findall(r'<!--(.*?)-->', content, re.DOTALL | re.IGNORECASE)
+        for comment in html_comments:
+            # Look for URLs in comments
+            urls = re.findall(r'(https?://[^\s<>"\']+)', comment, re.IGNORECASE)
+            for url in urls:
+                normalized = self.normalizeUrl(url, baseUrl)
+                if normalized:
+                    links.add(normalized)
+            # Look for paths in comments
+            paths = re.findall(r'(/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_.-]+)+)', comment)
+            for path in paths:
+                normalized = self.normalizeUrl(path, baseUrl)
+                if normalized:
+                    links.add(normalized)
+        
+        # JS single-line comments
+        js_single_comments = re.findall(r'//\s*(.+)$', content, re.MULTILINE)
+        for comment in js_single_comments:
+            urls = re.findall(r'(https?://[^\s<>"\']+)', comment, re.IGNORECASE)
+            for url in urls:
+                normalized = self.normalizeUrl(url, baseUrl)
+                if normalized:
+                    links.add(normalized)
+        
+        # JS multi-line comments
+        js_multi_comments = re.findall(r'/\*(.*?)\*/', content, re.DOTALL)
+        for comment in js_multi_comments:
+            urls = re.findall(r'(https?://[^\s<>"\']+)', comment, re.IGNORECASE)
+            for url in urls:
+                normalized = self.normalizeUrl(url, baseUrl)
+                if normalized:
+                    links.add(normalized)
+        
+        return links
+
+    def extractAllLinks(self, content, baseUrl):
+        """
+        Main extraction function that combines all extraction methods.
+        """
+        allLinks = set()
+        
+        # Extract from plain absolute URLs first
+        absolute_urls = re.findall(r'(https?://[^\s\'\"<>\)\]\}]+)', content, re.IGNORECASE)
+        for url in absolute_urls:
+            # Clean up trailing punctuation that might be captured
+            url = url.rstrip('.,;:!?)]\'"')
+            normalized = self.normalizeUrl(url, baseUrl)
+            if normalized:
+                allLinks.add(normalized)
+        
+        # Extract from HTML
+        allLinks.update(self.extractLinksFromHtml(content, baseUrl))
+        
+        # Extract from JavaScript
+        allLinks.update(self.extractLinksFromJavaScript(content, baseUrl))
+        
+        # Extract from JSON
+        allLinks.update(self.extractLinksFromJson(content, baseUrl))
+        
+        # Extract from comments
+        allLinks.update(self.extractLinksFromComments(content, baseUrl))
+        
+        return allLinks
+
     def siteMapGeneratorThread(self, my_arg=None):
         _urlAdd = ""
         for _url in self._tbAuthURL.getText().split('\n'):
@@ -4198,7 +4635,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         self._tbAuthHeader.setForeground (Color.black)        
         self._lblAuthNotification.setForeground (Color.black)
 
-        self._lblAuthNotification.text = "The crawler has just started. Please bear in mind, links based on Javascript may not be detected properly."
+        self._lblAuthNotification.text = "The crawler has just started. Enhanced link detection for HTML, JavaScript, JSON, and API endpoints is enabled."
         self._btnAuthNewUserAdd.setEnabled(False)
         self._tbAuthNewUser.setEnabled(False)
         self._cbSiteMapDepth.setEnabled(False)
@@ -4221,6 +4658,7 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
         crawledURLs = 0
         header = self._tbAuthHeader.getText()
         userLinks = _urlAdd + "\n"
+        targetHostname = urlparse.urlparse(_urlAdd).hostname
 
         for _url in _userURLs:
             try:
@@ -4267,51 +4705,11 @@ if (!suspiciousHit && !matchedScope && !matchedDone)
                 msgBody = self._helpers.bytesToString(_httpReqRes.getResponse()[self._helpers.analyzeResponse(self._helpers.bytesToString(_httpReqRes.getResponse())).getBodyOffset():])
 
                 if msgBody:
-                    links = re.findall("(https?://[^\\s\'\"<]+)", msgBody, re.IGNORECASE)
-                    for link in links:
-                        _ext = os.path.splitext(urlparse.urlparse(link).path)[1]
-                        if link not in _userURLs and link and urlparse.urlparse(_url).hostname == urlparse.urlparse(link).hostname and not any(re.findall(url_regex, link, re.IGNORECASE)) and "/." not in link and not any(re.findall(ext_regex, _ext, re.IGNORECASE)):
-                            _userURLs.append(link)
-                            userLinks = userLinks + link + "\n"
-                            self._lblAuthNotification.text = "The crawler has found '" + str(len(_userURLs)) + "' links so far, and it is still in progress: '" + str(_userURLs.index(_url) + 1) + "/" + str(crawledURLs + 1) + "', current folder depth: '" + str(folderDepth) + "'."
-
-                    links = re.findall("<a\\s+[^>]*?href=[\'|\"](.*?)[\'\"].*?>", msgBody, re.IGNORECASE)
-                    for link in (links.pop(0) for _ in xrange(len(links))):
-                        if not ".." in link:
-                            link = link.replace("/.", "/")
-                        if link == ".":
-                            link = "/"
-                        if "%3a" in link[0:10]:
-                            link =  urllib.unquote(link)
-
-                        if '"' in link or '%22' in link or '%3c' in link or '<' in link or 'script' in link:
-                            # abnormal urls to be excluded
-                            link = ""
-                            continue
-                        elif link.startswith('/'):
-                            link = urlparse.urlparse(_url).scheme + "://" + urlparse.urlparse(_url)[1] + link
-                        elif link.startswith('#'):
-                            if link == '#':
-                                link = urlparse.urlparse(_url).scheme + "://" + urlparse.urlparse(_url)[1] + urlparse.urlparse(_url)[2]
-                            else:
-                                link = urlparse.urlparse(_url).scheme + "://" + urlparse.urlparse(_url)[1] + urlparse.urlparse(_url)[2] + link
-                        elif link.startswith('..'):
-                            path = urlparse.urlparse(_url)[2]
-                            if not path.endswith('/'):
-                                path = str(urlparse.urlparse(_url)[2]).rsplit('/', 1)[0] + "/"
-                            _endswith =""
-                            if link.endswith('/'):
-                                _endswith ="/"
-                            link = urlparse.urlparse(_url).scheme + "://" + urlparse.urlparse(_url)[1] + str(posixpath.normpath(path + link)) + _endswith
-                        elif not link.startswith('http') and link:
-                            link = urlparse.urljoin(_url, link)
-                        else: 
-                            link = ""
-                            continue
-
-                        _ext = os.path.splitext(urlparse.urlparse(link).path)[1]
-
-                        if link not in _userURLs and link and urlparse.urlparse(_url).hostname == urlparse.urlparse(link).hostname and not any(re.findall(url_regex, link, re.IGNORECASE)) and "/." not in link and not any(re.findall(ext_regex, _ext, re.IGNORECASE)):
+                    # Use the comprehensive link extraction
+                    extractedLinks = self.extractAllLinks(msgBody, _url)
+                    
+                    for link in extractedLinks:
+                        if self.isValidLinkForCrawl(link, targetHostname, _userURLs):
                             _userURLs.append(link)
                             userLinks = userLinks + link + "\n"
                             self._lblAuthNotification.text = "The crawler has found '" + str(len(_userURLs)) + "' links so far, and it is still in progress: '" + str(_userURLs.index(_url) + 1) + "/" + str(crawledURLs + 1) + "', current folder depth: '" + str(folderDepth) + "'."
@@ -4390,13 +4788,19 @@ class UserEnabledRenderer(TableCellRenderer):
                                         cell.setBackground(self.colorsAlert[1])
                                         toolTipMessage = "The URL returns HTTP 2XX without authentication, and the response is same as URL owner!"
                                     elif table.getValueAt(row, y).startswith("HTTP 3"):
-                                        if not cell.getBackground() == self.colorsAlert[1] and not cell.getBackground() == self.colorsAlert[2]:
-                                            cell.setBackground(self.colorsAlert[3])
-                                            toolTipMessage = "The URL returns HTTP 3XX without authentication, but the response is same as URL owner!"
+                                        if str(table.getValueAt(row, column)).endswith(": 0 bytes"):
+                                            toolTipMessage = "The URL returns HTTP 3XX without authentication, the response is same as URL owner but no content!"
+                                        else:
+                                            if not cell.getBackground() == self.colorsAlert[1] and not cell.getBackground() == self.colorsAlert[2]:
+                                                cell.setBackground(self.colorsAlert[3])
+                                                toolTipMessage = "The URL returns HTTP 3XX without authentication, but the response is same as URL owner!"
                                 elif table.getValueAt(row, y)[:8] == table.getValueAt(row, column)[:8]:
-                                    if not cell.getBackground() == self.colorsAlert[1]:
-                                        cell.setBackground(self.colorsAlert[2])
-                                        toolTipMessage = "The URL returns same HTTP response code with URL owner, but no authentication!"
+                                    if str(table.getValueAt(row, column)).endswith(": 0 bytes"):
+                                        toolTipMessage = "The URL returns same HTTP response code with URL owner, but no content!"
+                                    else:
+                                        if not cell.getBackground() == self.colorsAlert[1]:
+                                            cell.setBackground(self.colorsAlert[2])
+                                            toolTipMessage = "The URL returns same HTTP response code with URL owner, but no authentication!"
                 elif table.getValueAt(row, 0) in self.userList[column - 1]:
                     cell.setBackground(self.colorsUser[column - 2])
                     toolTipMessage = "Http response of the user's own URL!"
@@ -4410,13 +4814,19 @@ class UserEnabledRenderer(TableCellRenderer):
                                         cell.setBackground(self.colorsAlert[1])
                                         toolTipMessage = "The URL is not in the user's list, but the response (HTTP 2XX) is same as URL owner!"
                                     elif table.getValueAt(row, y).startswith("HTTP 3"):
-                                        if not cell.getBackground() == self.colorsAlert[1] and not cell.getBackground() == self.colorsAlert[2]:
-                                            cell.setBackground(self.colorsAlert[3])
-                                            toolTipMessage = "The URL is not in the user's list, but the response (HTTP 3XX) is same as URL owner!"
+                                        if str(table.getValueAt(row, column)).endswith(": 0 bytes"):
+                                            toolTipMessage = "The URL is not in the user's list, the response (HTTP 3XX) is same as URL owner but no content!"
+                                        else:
+                                            if not cell.getBackground() == self.colorsAlert[1] and not cell.getBackground() == self.colorsAlert[2]:
+                                                cell.setBackground(self.colorsAlert[3])
+                                                toolTipMessage = "The URL is not in the user's list, but the response (HTTP 3XX) is same as URL owner!"
                                 elif table.getValueAt(row, y)[:8] == table.getValueAt(row, column)[:8]:
-                                    if not cell.getBackground() == self.colorsAlert[1]:    
-                                        cell.setBackground(self.colorsAlert[2])
-                                        toolTipMessage = "The URL is not in the user's list, but returns same HTTP response code with URL owner!"
+                                    if str(table.getValueAt(row, column)).endswith(": 0 bytes"):
+                                        toolTipMessage = "The URL is not in the user's list, returns same HTTP response code but no content!"
+                                    else:
+                                        if not cell.getBackground() == self.colorsAlert[1]:    
+                                            cell.setBackground(self.colorsAlert[2])
+                                            toolTipMessage = "The URL is not in the user's list, but returns same HTTP response code with URL owner!"
                 cell.setToolTipText(toolTipMessage)
 
                 if hasFocus:
@@ -4457,9 +4867,10 @@ class UserEnabledRenderer(TableCellRenderer):
                                         break
                     elif column == 1:
                         if str(table.getValueAt(row, column)).startswith("2"):
-                            cell.setBackground(self.colorsAlert[1])
-                            UserEnabledRenderer._colorsRed = True
                             toolTipMessage = "The response returns HTTP 2XX, even though all session identifiers have been removed!\n" + self.tipMessages[row][column]
+                            if not str(table.getValueAt(row, column)).endswith("(EmptyBody)"):
+                                cell.setBackground(self.colorsAlert[1])
+                                UserEnabledRenderer._colorsRed = True
                     else:
                         # 76 - 85
                         if str(table.getValueAt(row, column)).endswith("-"):
