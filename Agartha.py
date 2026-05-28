@@ -24,7 +24,7 @@ except:
     print "==== ERROR ====" + "\n\nFailed to load dependencies.\n" +str(sys.exc_info()[1]) +"\n\n==== ERROR ====\n\n"
     sys.exit(1)
 
-VERSION = "3.1020"
+VERSION = "3.1021"
 url_regex = r'(log|sign|time)([-_+%0-9]{0,5})(off|out)|(expire|kill|terminat|delete|remove)'
 ext_regex = r'^\.(gif|jpg|jpeg|png|css|js|ico|svg|eot|woff2|ttf|otf)$'
 
@@ -4890,8 +4890,8 @@ class UserEnabledRenderer(TableCellRenderer):
 
                         if not str(table.getValueAt(row, 1)).startswith("2"):
                             if str(table.getValueAt(row, column)).startswith("2") and not str(table.getValueAt(row, column)).endswith("-"):
-                                if str(table.getValueAt(row, column)).endswith("(EmptyBody)"):
-                                    toolTipMessage = "The bypass attempt returns HTTP 2XX, but no response body!\n" + self.tipMessages[row][column]
+                                if str(table.getValueAt(row, column)).endswith("(EmptyBody)") or str(table.getValueAt(row, column)).endswith("(Denied)"):
+                                    toolTipMessage = "The bypass attempt returns HTTP 2XX, but no a proper response!\n" + self.tipMessages[row][column]
                                 else:
                                     cell.setBackground(self.colorsAlert[1])
                                     UserEnabledRenderer._colorsRed = True
